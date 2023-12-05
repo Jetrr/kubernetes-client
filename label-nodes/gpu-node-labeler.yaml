@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: gpu-node-labeler
+spec:
+  selector:
+    matchLabels:
+      name: gpu-node-labeler
+  template:
+    metadata:
+      labels:
+        name: gpu-node-labeler
+    spec:
+      serviceAccountName: node-labeler
+      containers:
+      - name: labeler
+        image: us-central1-docker.pkg.dev/jetrr-cloud/training-app/node-labeler
+      nodeSelector:
+        cloud.google.com/gke-accelerator: nvidia-tesla-t4

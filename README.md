@@ -56,7 +56,6 @@ Enable Container APIs if you haven't: `gcloud services enable container.googleap
 | `--max-nodes 10`              | The maximum number of nodes for the cluster's node pool. Autoscaling won't scale above this number.                                                                                                                              |
 | `--enable-autoscaling`        | Enables the cluster to automatically adjust the number of nodes based on the workload.                                                                                                                                            |
 | `--autoscaling-profile optimize-utilization` | Sets the autoscaling profile to 'optimize-utilization', which means the autoscaler will prioritize keeping the utilization high over keeping spare capacity.                                                                     |
-| `--scale-down-unneeded-time "1m"` | Sets the amount of time a node must be underutilized before the autoscaler can remove it. In this case, it's set to 1 minute.                                                                                                    |
 
 ## The Importance of Setting the `devstorage.full_control` Scope for Write Access in Google Cloud Storage
 
@@ -96,18 +95,12 @@ gcloud container clusters create gpu-cluster-auto `
   --zone us-central1-f `
   --machine-type=n1-standard-4 `
   --accelerator type="nvidia-tesla-t4,count=1,gpu-driver-version=default" `
-  --scopes "https://www.googleapis.com/auth/devstorage.full_control",`
-"https://www.googleapis.com/auth/logging.write",`
-"https://www.googleapis.com/auth/monitoring",`
-"https://www.googleapis.com/auth/service.management.readonly",`
-"https://www.googleapis.com/auth/servicecontrol",`
-"https://www.googleapis.com/auth/trace.append" `
+  --scopes "https://www.googleapis.com/auth/devstorage.full_controlhttps://www.googleapis.com/auth/logging.write,https://www.googleapis.com/auth/monitoring,https://www.googleapis.com/auth/service.management.readonly,https://www.googleapis.com/auth/servicecontrol,https://www.googleapis.com/auth/trace.append" `
   --num-nodes 1 `
   --min-nodes 1 `
   --max-nodes 10 `
   --enable-autoscaling `
-  --autoscaling-profile optimize-utilization `
-  --scale-down-unneeded-time "1m"
+  --autoscaling-profile optimize-utilization
 ```
 
 
@@ -165,16 +158,10 @@ gcloud container node-pools create gpu-pool-auto `
   --zone=us-central1-f `
   --machine-type=n1-standard-4 `
   --accelerator=type=nvidia-tesla-t4,count=1,gpu-driver-version=default `
-  --scopes="https://www.googleapis.com/auth/devstorage.full_control",`
-"https://www.googleapis.com/auth/logging.write",`
-"https://www.googleapis.com/auth/monitoring",`
-"https://www.googleapis.com/auth/service.management.readonly",`
-"https://www.googleapis.com/auth/servicecontrol",`
-"https://www.googleapis.com/auth/trace.append" `
+  --scopes "https://www.googleapis.com/auth/devstorage.full_controlhttps://www.googleapis.com/auth/logging.write,https://www.googleapis.com/auth/monitoring,https://www.googleapis.com/auth/service.management.readonly,https://www.googleapis.com/auth/servicecontrol,https://www.googleapis.com/auth/trace.append" `
   --num-nodes=1 `
   --min-nodes=1 `
   --max-nodes=10 `
   --enable-autoscaling `
   --autoscaling-profile=optimize-utilization `
-  --scale-down-unneeded-time="1m"
 ```

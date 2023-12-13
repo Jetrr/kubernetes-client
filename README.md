@@ -40,7 +40,8 @@ client.get_job_status("job name")
 Enable Container APIs if you haven't: `gcloud services enable container.googleapis.com`
 
 1. Make sure to have `kubectl` installed.
-2. Install gke plugin for kubectl `gcloud components install gke-gcloud-auth-plugin`
+2. You may install kubectl if you have gcloud by `gcloud components install kubectl`
+3. Install gke plugin for kubectl `gcloud components install gke-gcloud-auth-plugin`
 
 ## Working with Kubernetes Cluster on GKE using `Kubectl`
 
@@ -86,8 +87,8 @@ gcloud container clusters create gpu-cluster-auto \
   --max-nodes 10 \
   --enable-autoscaling \
   --autoscaling-profile optimize-utilization \
-  --scale-down-unneeded-time "1m"
-```
+  --enable-image-streaming
+``` 
 
 **PowerShell:**
 ```powershell
@@ -95,14 +96,14 @@ gcloud container clusters create gpu-cluster-auto `
   --zone us-central1-f `
   --machine-type=n1-standard-4 `
   --accelerator type="nvidia-tesla-t4,count=1,gpu-driver-version=default" `
-  --scopes "https://www.googleapis.com/auth/devstorage.full_controlhttps://www.googleapis.com/auth/logging.write,https://www.googleapis.com/auth/monitoring,https://www.googleapis.com/auth/service.management.readonly,https://www.googleapis.com/auth/servicecontrol,https://www.googleapis.com/auth/trace.append" `
+  --scopes "https://www.googleapis.com/auth/devstorage.full_control,https://www.googleapis.com/auth/logging.write,https://www.googleapis.com/auth/monitoring,https://www.googleapis.com/auth/service.management.readonly,https://www.googleapis.com/auth/servicecontrol,https://www.googleapis.com/auth/trace.append" `
   --num-nodes 1 `
   --min-nodes 1 `
   --max-nodes 10 `
   --enable-autoscaling `
-  --autoscaling-profile optimize-utilization
+  --autoscaling-profile optimize-utilization `
+  --enable-image-streaming
 ```
-
 
 ### Retrieve Cluster to Kubectl
 
@@ -126,6 +127,26 @@ To View the logs of a pod: `kubectl logs <pod name>`
 
 To Connect to a Particular Pod: `kubectl exec -it <pod name> -- /bin/bash`
 
+To get all Events: `kubectl get events --sort-by='.metadata.creationTimestamp'`
+
+### Create a Multi GPU Cluster for Distributed Inference
+
+Each Node has Multiple GPUs. For example 4 GPUs per node for Distributed Inference.
+
+```powershell
+gcloud container clusters create multi-gpu `
+  --zone us-central1-f `
+  --machine-type=n1-highcpu-32 `
+  --accelerator type="nvidia-tesla-t4,count=4,gpu-driver-version=default" `
+  --scopes "https://www.googleapis.com/auth/devstorage.full_control,https://www.googleapis.com/auth/logging.write,https://www.googleapis.com/auth/monitoring,https://www.googleapis.com/auth/service.management.readonly,https://www.googleapis.com/auth/servicecontrol,https://www.googleapis.com/auth/trace.append" `
+  --num-nodes 1 `
+  --min-nodes 1 `
+  --max-nodes 25 `
+  --enable-autoscaling `
+  --autoscaling-profile optimize-utilization `
+  --enable-image-streaming
+```
+
 ### Create Node Pool (Optional)
 
 **Bash:**
@@ -147,7 +168,7 @@ gcloud container node-pools create gpu-pool-auto \
   --max-nodes=10 \
   --enable-autoscaling \
   --autoscaling-profile=optimize-utilization \
-  --scale-down-unneeded-time="1m"
+  --enable-image-streaming
 ```
 
 **PowerShell:**
@@ -158,10 +179,54 @@ gcloud container node-pools create gpu-pool-auto `
   --zone=us-central1-f `
   --machine-type=n1-standard-4 `
   --accelerator=type=nvidia-tesla-t4,count=1,gpu-driver-version=default `
-  --scopes "https://www.googleapis.com/auth/devstorage.full_controlhttps://www.googleapis.com/auth/logging.write,https://www.googleapis.com/auth/monitoring,https://www.googleapis.com/auth/service.management.readonly,https://www.googleapis.com/auth/servicecontrol,https://www.googleapis.com/auth/trace.append" `
+  --scopes "https://www.googleapis.com/auth/devstorage.full_control,https://www.googleapis.com/auth/logging.write,https://www.googleapis.com/auth/monitoring,https://www.googleapis.com/auth/service.management.readonly,https://www.googleapis.com/auth/servicecontrol,https://www.googleapis.com/auth/trace.append" `
   --num-nodes=1 `
   --min-nodes=1 `
   --max-nodes=10 `
   --enable-autoscaling `
   --autoscaling-profile=optimize-utilization `
+  --enable-image-streaming
+```
+
+<!-- Currently Under Working -->
+
+## Add Flags for Image Streaming and caching docker images for faster starting time for new nodes
+
+```bash
+gcloud container clusters create CLUSTER_NAME \
+  --zone=us-central1-f \
+  --image-type="COS_CONTAINERD"
+  --enable-image-streaming \
+```
+
+### verify the image streaming
+
+Get the Kubernetes event log to see image pull events:
+
+```bash
+kubectl get events --all-namespaces
+```
+
+The output is similar to the following:
+
+|NAMESPACE  |LAST SEEN  |TYPE    |REASON          |OBJECT                                                 |MESSAGE
+|---------  |---------  |----    |------          |------                                                 |---------
+|default    |11m        |Normal  |Pulling         |pod/frontend-64bcc69c4b-pgzgm                          | Pulling image `"us-docker.pkg.dev/google-samples/containers/gke/gb-frontend:v5"`
+|default    |11m        |Normal  |Pulled          |pod/frontend-64bcc69c4b-pgzgm                          | Successfully pulled image `"us-docker.pkg.dev/google-samples/containers/gke/gb-frontend:v5"` in 1.536908032s
+|default    |11m        |Normal  |ImageStreaming  |node/gke-riptide-cluster-default-pool-f1552ec4-0pjv    | Image `us-docker.pkg.dev/google-samples/containers/gke/gb-frontend:v5` is backed by image streaming.
+
+## Working with A100 Cluster with multi-instance GPUs enabled (GPU slicing)
+
+```powershell
+gcloud container clusters create power-cluster `
+  --zone us-central1-f `
+  --machine-type=a2-highgpu-1g `
+  --accelerator type="nvidia-tesla-a100,count=1,gpu-partition-size=1g.5gb,gpu-driver-version=default" `
+  --scopes "https://www.googleapis.com/auth/devstorage.full_control,https://www.googleapis.com/auth/logging.write,https://www.googleapis.com/auth/monitoring,https://www.googleapis.com/auth/service.management.readonly,https://www.googleapis.com/auth/servicecontrol,https://www.googleapis.com/auth/trace.append" `
+  --num-nodes 1 `
+  --min-nodes 1 `
+  --max-nodes 7 `
+  --enable-autoscaling `
+  --autoscaling-profile=optimize-utilization `
+  --enable-image-streaming
 ```

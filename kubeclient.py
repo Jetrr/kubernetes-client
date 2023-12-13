@@ -4,6 +4,8 @@ from google.cloud import container_v1
 from google.auth.transport.requests import Request
 from tempfile import NamedTemporaryFile
 import base64
+import json
+import datetime
 
 PROJECT_ID="jetrr-cloud"
 CLUSTER_ZONE="us-central1-f"
@@ -40,6 +42,11 @@ class CustomKubernetesClient:
         self.batch_v1 = k8s_client.BatchV1Api()
         self.core_v1 = k8s_client.CoreV1Api()
         self.namespace = namespace
+
+    def _datetime_json_serializer(self, obj):
+        if isinstance(obj, datetime.datetime):
+            return obj.isoformat()
+        raise TypeError("Type %s not serializable" % type(obj))
 
     def create_job(self, name: str, image: str, command: list[str], args: list[str]):
         # Configureate Pod template container
@@ -119,3 +126,33 @@ class CustomKubernetesClient:
         except k8s_client.ApiException as e:
             print(f"Exception when calling Kubernetes API: {e}")
             return False
+        
+    def get_all_events(self):
+        try:
+            events = self.core_v1.list_namespaced_event(self.namespace)
+            # Sort the events by creation timestamp
+            sorted_events = sorted(events.items, key=lambda x: x.metadata.creation_timestamp)
+            # Convert the sorted events to JSON
+            events_json = []
+
+            for event in sorted_events:
+                event_dict = {
+                    "time": event.metadata.creation_timestamp,
+                    "namespace": event.metadata.namespace,
+                    "name": event.metadata.name,
+                    "reason": event.reason,
+                    "message": event.message
+                }
+                events_json.append(event_dict)
+
+            # Serialize the list of event dictionaries to JSON
+            json_output = json.dumps(
+                events_json, 
+                default=self._datetime_json_serializer, 
+            )
+
+            return json.loads(json_output)
+
+        except k8s_client.ApiException as e:
+            print(f"Exception when calling Kubernetes API: {e}")
+            return None

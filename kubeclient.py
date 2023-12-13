@@ -13,9 +13,35 @@ CLUSTER_NAME="gpu-cluster-auto"
 
 class CustomKubernetesClient:
     """
-    Custom Kubernetes client Wrapper for creating, deleting, and retrieving job status.
+    Custom Kubernetes client wrapper for managing Kubernetes jobs.
+    
+    This class provides methods to create, delete, and retrieve the status of Kubernetes jobs,
+    as well as listing all events in a given namespace.
+    
+    Attributes:
+        batch_v1 (k8s_client.BatchV1Api): The client for interacting with the Kubernetes Batch API.
+        core_v1 (k8s_client.CoreV1Api): The client for interacting with the Kubernetes Core API.
+        namespace (str): The Kubernetes namespace in which operations will be performed.
     """
     def __init__(self, credentials, namespace="default"):
+        """
+        Initializes the CustomKubernetesClient with the provided credentials and namespace.
+        
+        Args:
+            credentials: The credentials object containing the token for Kubernetes API authentication.
+            namespace (str): The Kubernetes namespace to operate in. Defaults to "default".
+        Example:
+            ```python
+            credentials = service_account.Credentials.from_service_account_file(
+                filename="keyfile.json",
+                scopes=["https://www.googleapis.com/auth/cloud-platform"],
+            )
+            # Refresh the token
+            credentials.refresh(Request())
+
+            client = CustomKubernetesClient(credentials=credentials)
+            ```
+        """
         token = credentials.token
         # Create the Cluster Manager Client
         cluster_client = container_v1.ClusterManagerClient(
@@ -44,11 +70,46 @@ class CustomKubernetesClient:
         self.namespace = namespace
 
     def _datetime_json_serializer(self, obj):
+        """
+        A JSON serializer for datetime objects.
+        
+        Args:
+            obj: The object to serialize.
+            
+        Returns:
+            str: The ISO format string if the object is a datetime.
+            
+        Raises:
+            TypeError: If the object is not a datetime instance.
+        """
         if isinstance(obj, datetime.datetime):
             return obj.isoformat()
         raise TypeError("Type %s not serializable" % type(obj))
 
     def create_job(self, name: str, image: str, command: list[str], args: list[str]):
+        """
+        Creates a Kubernetes job with the specified parameters.
+        
+        Args:
+            name (str): The name of the job to create.
+            image (str): The Docker image to use for the job's container.
+            command (list[str]): The command to run in the container.
+            args (list[str]): The arguments to pass to the command.
+            
+        Returns:
+            bool: True if the job was created successfully, False otherwise.
+        Example:
+            ```python
+            client = CustomKubernetesClient(credentials=credentials)
+            job_id=str(uuid4())
+            client.create_job(
+                name=job_id
+                image="path/to/training-job/image:tag"
+                command=["python3", "training.py"]
+                args=[]
+            )
+            ```
+        """
         # Configureate Pod template container
         container = k8s_client.V1Container(
             name=name,
@@ -85,6 +146,15 @@ class CustomKubernetesClient:
             return False
 
     def get_job_status(self, job_name: str):
+        """
+        Retrieves the status of the specified Kubernetes job.
+        
+        Args:
+            job_name (str): The name of the job to retrieve the status for.
+            
+        Returns:
+            str: The status of the job, which can be `completed`, `failed`, `started`, `pending`, or `unspecified`.
+        """
         try:
             # Get the job
             job = self.batch_v1.read_namespaced_job(name=job_name, namespace=self.namespace)
@@ -121,6 +191,15 @@ class CustomKubernetesClient:
             return "unspecified"
 
     def delete_job(self, job_name):
+        """
+        Deletes the specified Kubernetes job.
+        
+        Args:
+            job_name (str): The name of the job to delete.
+            
+        Returns:
+            `bool`: True if the job was deleted successfully, False otherwise.
+        """
         try:
             self.batch_v1.delete_namespaced_job(name=job_name, namespace=self.namespace)
             return True
@@ -129,6 +208,23 @@ class CustomKubernetesClient:
             return False
         
     def get_all_events(self):
+        """
+        Retrieves all events from the Kubernetes namespace.
+        
+        Returns:
+            list: A list of event dictionaries sorted by creation timestamp, or None if an error occurs.
+        
+        Example:
+            ```
+            [{
+                "time": "2023-12-13T10:16:45+00:00",
+                "namespace": "default",
+                "name": "b209b665-d275-4b43-b3a7-07f70cc8ac69.17a05cb84228234e",
+                "reason": "Completed",
+                "message": "Job completed"
+            }]
+            ```
+        """
         try:
             events = self.core_v1.list_namespaced_event(self.namespace)
             # Sort the events by creation timestamp

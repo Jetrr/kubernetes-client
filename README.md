@@ -9,26 +9,42 @@ Custom Kubernetes client Wrapper for creating, deleting, and retrieving job stat
 3. Import Client and Use Methods
 
 ```py
+from google.oauth2 import service_account
+from google.auth.transport.requests import Request
 from kubeclient import CustomKubernetesClient
+import json
+from uuid import uuid4
 
-client = CustomKubernetesClient(
-  config_file="/path/to/cluster/config-file"
+credentials = service_account.Credentials.from_service_account_file(
+    filename="keyfile.json",
+    scopes=["https://www.googleapis.com/auth/cloud-platform"],
 )
+# Refresh the token
+credentials.refresh(Request())
+
+client = CustomKubernetesClient(credentials=credentials)
+
+job_id=str(uuid4())
 
 # Create a Job
 client.create_job(
-  name="uuid - job id"
+  name=job_id
   image="path/to/training-job/image:tag"
   command=["python3", "training.py"]
   args=[]
 )
 
 # delete a job
-client.delete_job("job name")
+client.delete_job(job_id)
 
 # Retrive Job Status
-client.get_job_status("job name")
-# Response = Literal['Succeeded', 'Failed', 'Started', 'Queued', 'Pending'] | None
+client.get_job_status(job_id)
+# Response = Literal['completed', 'failed', 'started', 'pending', 'unspecified']
+
+events = client.get_all_events()
+
+# Print the JSON output
+print(json.dumps(events, indent=2))
 ```
 
 **Note:** You do not need to set up kubernetes tools if the cluster is already up and running.

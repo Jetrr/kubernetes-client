@@ -114,10 +114,11 @@ class CustomKubernetesClient:
                 pod_scheduled = get_condition_type("PodScheduled")
                 if pod_scheduled and pod_scheduled["status"] == "False":
                     return "pending" # since 'queued case isn't being handled, we'll just return 'pending' for now
-                else:
-                    return "pending"
+
+            return "pending"
         except k8s_client.ApiException as e:
             print(f"Exception when calling Kubernetes API: {e}")
+            return "unspecified"
 
     def delete_job(self, job_name):
         try:

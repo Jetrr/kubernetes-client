@@ -133,6 +133,8 @@ To view Clusters: `gcloud container clusters list`
 
 To View the Nodes: `kubectl get nodes`
 
+To run a sample job: `kubectl apply -f ml-job.yaml`
+
 To View the Running Nodes: `kubectl get nodes`
 
 To View the Running Pods: `kubectl get pods`

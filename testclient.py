@@ -10,9 +10,16 @@ credentials = service_account.Credentials.from_service_account_file(
 # Refresh the token
 credentials.refresh(Request())
 
-client = CustomKubernetesClient(credentials=credentials)
+client = CustomKubernetesClient(
+  credentials=credentials
+  cluster_name="gpu-cluster-auto",
+  cluster_location="us-central1-f"
+  project_id="jetrr-cloud"
+)
 
-events = client.get_all_events()
+# events = client.get_all_events()
+
+print(client.get_job_status("ec84a81b-0ffd-42e4-af4e-77762d33057a"))
 
 # Print the JSON output
-print(json.dumps(events, indent=2))
+# print(json.dumps(events, indent=2))

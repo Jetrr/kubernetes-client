@@ -22,7 +22,12 @@ credentials = service_account.Credentials.from_service_account_file(
 # Refresh the token
 credentials.refresh(Request())
 
-client = CustomKubernetesClient(credentials=credentials)
+client = CustomKubernetesClient(
+  credentials=credentials
+  cluster_name="gpu-cluster-auto",
+  cluster_location="us-central1-f"
+  project_id="jetrr-cloud"
+)
 
 job_id=str(uuid4())
 

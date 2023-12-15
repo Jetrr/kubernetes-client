@@ -1,4 +1,4 @@
-from kubernetes import client as k8s_client, config as k8s_config
+from kubernetes import client as k8s_client
 from kubernetes.client.rest import ApiException
 from google.cloud import container_v1
 from google.auth.transport.requests import Request
@@ -6,10 +6,6 @@ from tempfile import NamedTemporaryFile
 import base64
 import json
 import datetime
-
-PROJECT_ID="jetrr-cloud"
-CLUSTER_ZONE="us-central1-f"
-CLUSTER_NAME="gpu-cluster-auto"
 
 class CustomKubernetesClient:
     """
@@ -23,7 +19,15 @@ class CustomKubernetesClient:
         core_v1 (k8s_client.CoreV1Api): The client for interacting with the Kubernetes Core API.
         namespace (str): The Kubernetes namespace in which operations will be performed.
     """
-    def __init__(self, credentials, namespace="default"):
+
+    def __init__(self, credentials, cluster_name, cluster_location, project_id, namespace="default"):
+        self.credentials = credentials
+        self.namespace = namespace
+        self.cluster_name = cluster_name
+        self.cluster_location = cluster_location
+        self.project_id = project_id
+
+    def _init_client(self):
         """
         Initializes the CustomKubernetesClient with the provided credentials and namespace.
         
@@ -42,13 +46,16 @@ class CustomKubernetesClient:
             client = CustomKubernetesClient(credentials=credentials)
             ```
         """
+        credentials = self.credentials
+        # Refresh the token
+        credentials.refresh(Request())
         token = credentials.token
         # Create the Cluster Manager Client
         cluster_client = container_v1.ClusterManagerClient(
             credentials=credentials
         )
         request = container_v1.GetClusterRequest(
-            name=f'projects/{PROJECT_ID}/locations/{CLUSTER_ZONE}/clusters/{CLUSTER_NAME}'
+            name=f'projects/{self.project_id}/locations/{self.cluster_location}/clusters/{self.cluster_name}'
         )
         response = cluster_client.get_cluster(request)
 
@@ -67,7 +74,6 @@ class CustomKubernetesClient:
         k8s_client.Configuration.set_default(configuration)
         self.batch_v1 = k8s_client.BatchV1Api()
         self.core_v1 = k8s_client.CoreV1Api()
-        self.namespace = namespace
 
     def _datetime_json_serializer(self, obj):
         """
@@ -110,6 +116,7 @@ class CustomKubernetesClient:
             )
             ```
         """
+        self._init_client()
         # Configureate Pod template container
         container = k8s_client.V1Container(
             name=name,
@@ -128,7 +135,11 @@ class CustomKubernetesClient:
             ),
         )
         # Create the specification of deployment
-        spec = k8s_client.V1JobSpec(template=template, backoff_limit=0)
+        spec = k8s_client.V1JobSpec(
+            template=template, 
+            backoff_limit=0,
+            ttl_seconds_after_finished=5,
+            )
         # Instantiate the job object
         job = k8s_client.V1Job(
             api_version="batch/v1",
@@ -155,6 +166,7 @@ class CustomKubernetesClient:
         Returns:
             str: The status of the job, which can be `completed`, `failed`, `started`, `pending`, or `unspecified`.
         """
+        self._init_client()
         try:
             # Get the job
             job = self.batch_v1.read_namespaced_job(name=job_name, namespace=self.namespace)
@@ -200,6 +212,7 @@ class CustomKubernetesClient:
         Returns:
             `bool`: True if the job was deleted successfully, False otherwise.
         """
+        self._init_client()
         try:
             self.batch_v1.delete_namespaced_job(name=job_name, namespace=self.namespace)
             return True
@@ -225,6 +238,7 @@ class CustomKubernetesClient:
             }]
             ```
         """
+        self._init_client()
         try:
             events = self.core_v1.list_namespaced_event(self.namespace)
             # Sort the events by creation timestamp

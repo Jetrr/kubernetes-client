@@ -2,6 +2,12 @@
 
 Custom Kubernetes client Wrapper for creating, deleting, and retrieving job status.
 
+## Kubernetes cli setup for getting cluster and it's credentials
+gcloud components install kubectl
+gcloud components install gke-gcloud-auth-plugin
+gcloud container clusters get-credentials gpu-cluster-auto --zone us-central1-f
+
+
 ## Client Setup
 
 1. Copy `kubeclient.py` to your working Directory

@@ -9,7 +9,11 @@ gcloud components install gke-gcloud-auth-plugin
 
 gcloud container clusters get-credentials gpu-cluster-auto --zone us-central1-f
 
+## Making a node unschedulable and configure it to not be scaled down for logging
+ kubectl cordon `node_name`
 
+ kubectl annotate node `node_name` cluster-autoscaler.kubernetes.io/scale-down-disabled=true
+ 
 
 ## Client Setup
 

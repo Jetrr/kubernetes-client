@@ -1,0 +1,17 @@
+#init job to pre-pull training image on cpu node 
+
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: ml-image-prepull-job-2  # This is a template
+spec:
+  template:
+    spec:
+      containers:
+      - name: ml-container
+        image: us-central1-docker.pkg.dev/jetrr-cloud/training-app/training-main-dev:CyberRealistic_V3
+        command: ["sh", "-c", "sleep 1600"]
+      nodeSelector:
+        kubernetes.io/hostname: gke-gpu-cluster-auto-basic-0cc69e4e-lt3t
+      restartPolicy: Never
+  backoffLimit: 3

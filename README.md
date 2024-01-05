@@ -272,3 +272,9 @@ gcloud container clusters create power-cluster `
 ## Pulling Training image in cpu node to be used for image streaming
 
 - `kubectl apply -f image-prepull-job.yaml` run this command with the necessary configs of node selector in the yaml file to run an image pre-pull job on a cpu node. This will cache images on the cpu node that can be used by image streaming to quickly deploy the image on a new gpu node 
+
+## creating a daemonset that pre-pulls the training image in the cpu node when a cpu node is created
+- kubectl apply -f `image-prepull-daemonset.yml`
+- the above command will create a daemonset on the cluster that will pull the training image on a new node created in the basic pool (cpu node pools) 
+- this process automates the image pulling on cpu nodes
+- check existing daemonsets `kubectl get daemonsets`
